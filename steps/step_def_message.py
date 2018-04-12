@@ -120,8 +120,7 @@ def step_impl(context):
 @then(u'Retrieve message uuid for the message')
 def step_impl(context):
         current_json = global_general_variables['message_api_response'].json()
-        for obj in current_json["objects"]:
-            message_uuids.append(obj.get("message_uuid"))
+        message_uuids.append(current_json.get("message_uuid"))
         message_details['message_uuid'] = message_uuids[0]
         print (message_details['message_uuid'])
 
