@@ -5,6 +5,7 @@ global_general_variables = {}
 http_auth = ['MAODUZYTQ0Y2FMYJBLOW','Mzk0MzU1Mzc3MTc1MTEyMGU2M2RlYTIwN2UyMzk1']
 http_request_header = {}
 http_request_url_query_param = {}
+http_request_body = {}
 numbers = []
 numbers_to_call = {}
 message_uuids = []
@@ -70,9 +71,9 @@ def step_impl(context):
     for obj in current_json["objects"]:
             numbers.append(obj.get("number"))
     numbers_to_call['number_from'] = numbers[1]
-    print (numbers_to_call['number_from'])
-    numbers_to_call['number_to'] = numbers[2]
-    print (numbers_to_call['number_to'])
+    print "Number to call from: " + (numbers_to_call['number_from'])
+    numbers_to_call['number_to'] = numbers[0]
+    print "Number to call to: " + (numbers_to_call['number_to'])
 
 
 @given(u'Set Message api endpoint as "{message_api_endpoint}"')
@@ -81,29 +82,22 @@ def step_impl(context, message_api_endpoint):
 
 @when(u'Set message to send as "{query_param1}"')
 def step_impl(context, query_param1):
-        http_request_url_query_param.clear()
-        http_request_url_query_param['src'] = numbers_to_call['number_from']
-        http_request_url_query_param['dst'] = numbers_to_call['number_to']
-        http_request_url_query_param['text'] = query_param1
+        http_request_body.clear()
+        http_request_body['src'] = numbers_to_call['number_from']
+        http_request_body['dst'] = numbers_to_call['number_to']
+        http_request_body['text'] = query_param1
 
 @when(u'Raise POST HTTP request for sending message')
 def step_impl(context):
+    http_request_url_query_param["Cache-Control"] = "no-cache"
     url_temp = global_general_variables['base_URI']
     url_temp += global_general_variables['message_api_endpoint']
-    global_general_variables['message_api_response'] = requests.post(url_temp,auth=(http_auth[0], http_auth[1]),headers=http_request_header,params=http_request_url_query_param)
+    global_general_variables['message_api_response'] = requests.post(url_temp,auth=(http_auth[0], http_auth[1]),headers=http_request_header,params=http_request_url_query_param,data=http_request_body)
 
 @then(u'Valid HTTP response should be received from message API')
 def step_impl(context):
     if None in global_general_variables['message_api_response']:
         assert False, 'Null response received'
-
-@then(u'Response http code should be {message_expected_response_code:d} from message API')
-def step_impl(context, message_expected_response_code):
-    global_general_variables['message_expected_response_code'] = message_expected_response_code
-    actual_response_code = global_general_variables['message_expected_response_code'].status_code
-    if str(actual_response_code) not in str(message_expected_response_code):
-        print (str(global_general_variables['message_api_response'].json()))
-        assert False, '***ERROR: Following unexpected error response code received: ' + str(actual_response_code)
 
 @then(u'Response HEADER content type should be "{message_expected_response_content_type}" from message API')
 def step_impl(context, message_expected_response_content_type):
@@ -119,11 +113,20 @@ def step_impl(context):
 
 @then(u'Retrieve message uuid for the message')
 def step_impl(context):
-        current_json = global_general_variables['message_api_response'].json()
-        message_uuids.append(current_json.get("message_uuid"))
+    current_json = global_general_variables['message_api_response'].json()
+    if global_general_variables['message_api_response'].status_code == 202:
+        message_uuids.append(current_json.get("message_uuid")[0])
         message_details['message_uuid'] = message_uuids[0]
-        print (message_details['message_uuid'])
-
+        print "Message UUID - " + (message_details['message_uuid'])
+    elif global_general_variables['message_api_response'].status_code == 200 and current_json["objects"] is not None:
+        for obj in current_json["objects"]:
+            message_uuids.append(obj.get("message_uuid"))
+        message_details['message_uuid'] = message_uuids[0]
+        print "Message UUID - " + (message_details['message_uuid'])
+    elif global_general_variables['message_api_response'].status_code == 400:
+        print "Insufficient Funds"
+    else:
+        print "Message UUID not received"
 
 @given(u'Set message details api endpoint as "{message_details_api_endpoint}"')
 def step_impl(context, message_details_api_endpoint):
