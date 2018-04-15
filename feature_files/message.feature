@@ -1,4 +1,4 @@
-Feature: One
+Feature: Test plivo apis
 
 Background:
 	Given Set BaseURI as "http://api.plivo.com/v1/"
@@ -19,7 +19,7 @@ Scenario: Use numbers api to get any two numbers.
     Given Set Message api endpoint as "Account/MAODUZYTQ0Y2FMYJBLOW/Message"
     When Set HEADER param request content type as "application/json"
     And Set HEADER param response accept type as "application/json"
-    And Set message to send as "Hello"
+    And Set message to send as "Helloo"
 	And Raise POST HTTP request for sending message
     Then Valid HTTP response should be received from message API
 	And Response HEADER content type should be "application/json" from message API
